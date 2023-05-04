@@ -33,5 +33,8 @@ Options:
 Example:
 
 ```bash
-python3 sbom-analyzer.py --input teleport_gravitational.json --output teleport_gravitational_results.csv --advisory-index-dir '../advisory-database/'
+python3 sbom-analyzer.py \
+	--advisory-index-dir '../advisory-database/' \
+	--input teleport_gravitational.json \
+	--output teleport_gravitational_results.csv \
 ```
