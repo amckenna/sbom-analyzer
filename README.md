@@ -17,7 +17,6 @@ pip install -r requirements.txt
 ```
 
 To use:
-
 - before each use, be sure to run `git pull` in your local advisory-database repo/directory.
 
 ```bash
@@ -31,6 +30,7 @@ Options:
                              (full or relative)  [required]
   --help                     Show this message and exit.
 ```
+Example:
 
 ```bash
 python3 sbom-analyzer.py --input teleport_gravitational.json --output teleport_gravitational_results.csv --advisory-index-dir '../advisory-database/'
