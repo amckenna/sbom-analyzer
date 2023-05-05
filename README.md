@@ -24,11 +24,11 @@ $ python3 sbom-analyzer.py --help
 Usage: sbom-analyzer.py [OPTIONS]
 
 Options:
-  --input TEXT               SPDX file to analyze  [required]
-  --output TEXT              output CSV filename  [required]
-  --advisory-index-dir TEXT  directory path for the github issue advisory repo
-                             (full or relative)  [required]
-  --help                     Show this message and exit.
+  --input TEXT   SPDX file to analyze  [required]
+  --output TEXT  output CSV filename  [required]
+  --index TEXT   full path to the github issue advisory repo  [required]
+  -v, --verbose  verbose output
+  --help         Show this message and exit.
 ```
 Example:
 
