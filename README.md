@@ -4,7 +4,7 @@ This is simple python tool for analyzing an SBOM for vulnerable dependencies.
 
 Currently, SBOM Analyzer targets an SPDX formatted SBOM file, like the one from GitHub's dependency graph "Export SBOM" feature. SBOM Analyzer will enumerate the dependencies, use the Open Source Vulnerabilities Database API (https://google.github.io/osv.dev/) to determine if a dependency contains one or more vulnerabilities. If a vulnerability is found, information on that vulnerability will be gathered from the GitHub Advisory Database (https://github.com/github/advisory-database).
 
-Note, for this tool to work, you must clone the GitHub Advisory Database repository, which contains a directory structure of JSON files, each containing information on a GitHub Advisory. Using this datasource reduces further dependencies on APIs and removes the need for any API access tokens or accounts for this tool to work.
+Note, for this tool to work, you must clone the GitHub Advisory Database repository, which contains a directory structure of JSON files, each containing information on a GitHub Advisory. Using this datasource reduces further dependencies on APIs and removes the need for any API access tokens or accounts for this tool to work. Warning - the GitHub Advisory Database repository is around 2.5 Gb.
 
 Analysis output is a CSV file.
 
@@ -34,7 +34,7 @@ Example:
 
 ```bash
 python3 sbom-analyzer.py \
-	--advisory-index-dir '../advisory-database/' \
+	--index '/repos/advisory-database' \
 	--input teleport_gravitational.json \
 	--output teleport_gravitational_results.csv \
 ```

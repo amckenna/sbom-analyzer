@@ -38,16 +38,17 @@ def build_advisory_index(base_path):
 @click.command()
 @click.option('--input', required=True, help='SPDX file to analyze')
 @click.option('--output', required=True, help='output CSV filename')
-@click.option('--advisory-index-dir', required=True, help='directory path for the github issue advisory repo (full or relative)')
-def analyze_sbom(input, output, advisory_index_dir):
+@click.option('--index', required=True, help='full path to the github issue advisory repo')
+@click.option('--verbose', '-v', is_flag=True, help='verbose output')
+def analyze_sbom(input, output, index, verbose):
 	f = open(input, 'r')
 	blob = json.load(f)
 
-	print('detected {} packages'.format(len(blob['packages'][1:])))
+	print('[*] detected {} packages'.format(len(blob['packages'][1:])))
 
 	threads = 50
 	task_results = []
-	print('querying OSV for vulnerable packages with {} threads...'.format(threads))
+	if verbose: print('[*] querying OSV for vulnerable packages with {} threads...'.format(threads))
 	with ThreadPoolExecutor(max_workers=threads) as executor:
 		for p in blob['packages'][1:]:
 			ecosystem = p['name'].split(':')[0]
@@ -76,18 +77,26 @@ def analyze_sbom(input, output, advisory_index_dir):
 			failed_lookups.append({'package_name': package_name,'package_version': package_version})
 			lookup_failures += 1
 
-	print('completed query of OSV')
-	print('note, a package is a unique package name + version.')
-	print('there may be multiple vulnerabilities per package.')
-	print('further details will be in the csv output.')
-	print(' - package lookups: {}'.format(package_lookups))
-	print(' - lookup failures: {}'.format(lookup_failures))
-	print(' - vulnerable pkgs: {}'.format(vulnerable_pkgs))
+	if len(failed_lookups) > 0:
+		for failed in failed_lookups:
+			print('[!] failed lookup for {}'.format(failed))
 
-	print('building advisory index...')
-	advisory_index = build_advisory_index(advisory_index_dir)
+	if verbose: print('[*] completed query of OSV')
+	if verbose: print('[*] note, a package is a unique package name + version.')
+	if verbose: print('[*] there may be multiple vulnerabilities per package.')
+	if verbose: print('[*] further details will be in the csv output.')
+	if verbose: print('[*]  - package lookups: {}'.format(package_lookups))
+	if verbose: print('[*]  - lookup failures: {}'.format(lookup_failures))
+	print('[*]  - vulnerable pkgs: {}'.format(vulnerable_pkgs))
 
-	print('parsing and extracting vulnerable dependency data...')
+	if verbose: print('[*] building advisory index...')
+	index = index[:-1] if index[-1] == '/' else index
+	advisory_index = build_advisory_index(index)
+
+	if len(advisory_index) == 0:
+		raise Exception('[!] advisory index was not built properly!')
+
+	if verbose: print('[*] parsing and extracting vulnerable dependency data...')
 	vulnerable_packages_details = []
 	
 
@@ -105,13 +114,13 @@ def analyze_sbom(input, output, advisory_index_dir):
 					f.close()
 				else:
 					missing_vulns.append(vuln)
-					print('vuln ({}) not found in advisory index! that probably means you need to refresh the advisory repo'.format(vuln))
+					print('[!] vuln ({}) not found in advisory index! that probably means you need to refresh the advisory repo'.format(vuln))
 		for vuln in missing_vulns:
 			del vpd['vulnerabilities'][vuln]
 
 		vulnerable_packages_details.append(vpd)
 
-	print('building csv output...')
+	if verbose: print('[*] building csv output...')
 	columns = ['package_name','package_version','vulnerability_id','vulnerability_link','vulnerability_severity','vulnerability_summary','vulnerability_details']
 	ghsa_base_url = 'https://github.com/advisories?query={}'
 
@@ -130,9 +139,9 @@ def analyze_sbom(input, output, advisory_index_dir):
 									 package['vulnerabilities'][vuln]['summary'],
 									 package['vulnerabilities'][vuln]['details'], ]
 
-	print('writing CSV output file...')
+	if verbose: print('[*] writing CSV output file...')
 	df.to_csv(output)
-	print('analysis complete.')
+	print('[*] analysis complete')
 
 if __name__ == '__main__':
 	analyze_sbom()
