@@ -7,17 +7,17 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-def query_osv(package_name, package_version):
+def query_osv(package_name, package_version, ecosystem):
 	osv_api_url = 'https://api.osv.dev/v1/query'
 	osv_request_obj = {'package': {'name': package_name}, 'version': package_version}
 	try:
 		r = requests.post(osv_api_url, json=osv_request_obj, timeout=10)
 		if r.status_code == 200:
-			return True, package_name, package_version, r.json()
+			return True, ecosystem, package_name, package_version, r.json()
 		else:
-			return False, package_name, package_version, {}
+			return False, ecosystem, package_name, package_version, {}
 	except:
-		return False, package_name, package_version, {}
+		return False, ecosystem, package_name, package_version, {}
 
 def parse_osv_response(json_response):
 	vulns = {}
@@ -55,7 +55,7 @@ def analyze_sbom(input, output, index, verbose):
 			package_name = p['name'].split(':')[1]
 			package_version = p['versionInfo']
 			
-			task_results.append(executor.submit(query_osv, package_name, package_version))
+			task_results.append(executor.submit(query_osv, package_name, package_version, ecosystem))
 
 	package_lookups = 0
 	lookup_failures = 0
@@ -64,13 +64,14 @@ def analyze_sbom(input, output, index, verbose):
 	vulnerable_packages = []
 
 	for task in as_completed(task_results):
-		success, package_name, package_version, json_response = task.result()
+		success, ecosystem, package_name, package_version, json_response = task.result()
 		
 		if success:
 			package_lookups += 1
 			if bool(json_response):
 				vulnerable_pkgs += 1
-				vulnerable_packages.append({'package_name': package_name, 
+				vulnerable_packages.append({'ecosystem': ecosystem,
+											'package_name': package_name, 
 											'package_version': package_version, 
 											'json_response': json_response})
 		else:
@@ -103,9 +104,10 @@ def analyze_sbom(input, output, index, verbose):
 	for package in vulnerable_packages:
 		missing_vulns = []
 		vpd = {}
-		vpd['package_name']    = package['package_name']
-		vpd['package_version'] = package['package_version']
-		vpd['vulnerabilities'] = parse_osv_response(package['json_response'])
+		vpd['ecosystem'] 		= package['ecosystem']
+		vpd['package_name']     = package['package_name']
+		vpd['package_version']  = package['package_version']
+		vpd['vulnerabilities']  = parse_osv_response(package['json_response'])
 		if vpd['vulnerabilities']:
 			for vuln in vpd['vulnerabilities'].keys():
 				if vuln in advisory_index:
@@ -121,7 +123,7 @@ def analyze_sbom(input, output, index, verbose):
 		vulnerable_packages_details.append(vpd)
 
 	if verbose: print('[*] building csv output...')
-	columns = ['package_name','package_version','vulnerability_id','vulnerability_link','vulnerability_severity','vulnerability_summary','vulnerability_details']
+	columns = ['ecosystem', 'package_name','package_version','vulnerability_id','vulnerability_link','vulnerability_severity','vulnerability_summary','vulnerability_details']
 	ghsa_base_url = 'https://github.com/advisories?query={}'
 
 	df = pd.DataFrame(columns=columns)
@@ -131,7 +133,8 @@ def analyze_sbom(input, output, index, verbose):
 			vuln_id = package['vulnerabilities'][vuln]['id']
 			temp = package['vulnerabilities'][vuln]['database_specific']['severity']
 			vuln_severity = temp if temp != 'MODERATE' else 'MEDIUM'
-			df.loc[len(df.index)] = [package['package_name'], 
+			df.loc[len(df.index)] = [package['ecosystem'],
+									 package['package_name'], 
 									 package['package_version'],
 									 vuln_id,
 									 ghsa_base_url.format(vuln_id),
