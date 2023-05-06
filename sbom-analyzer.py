@@ -37,7 +37,7 @@ def build_advisory_index(base_path):
 
 @click.command()
 @click.option('--input', required=True, help='SPDX file to analyze')
-@click.option('--output', required=True, help='output CSV filename')
+@click.option('--output', help='output CSV filename')
 @click.option('--index', required=True, help='full path to the github issue advisory repo')
 @click.option('--verbose', '-v', is_flag=True, help='verbose output')
 def analyze_sbom(input, output, index, verbose):
@@ -140,6 +140,7 @@ def analyze_sbom(input, output, index, verbose):
 									 package['vulnerabilities'][vuln]['details'], ]
 
 	if verbose: print('[*] writing CSV output file...')
+	output = output if output else 'sbom-analysis-results.csv'
 	df.to_csv(output)
 	print('[*] analysis complete')
 
