@@ -41,6 +41,4 @@ python3 sbom-analyzer.py \
 
 ## TODO
 
-[ ] Specify the "environment" of the package in the analysis output, such as pypi, npm, etc.
-[ ] Read and parse a directory of SBOM files, outputing an analysis result per SBOM
 [ ] Support JSON output
