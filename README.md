@@ -13,10 +13,8 @@ To install:
 git clone https://github.com/github/advisory-database.git
 git clone https://github.com/amckenna/sbom-analyzer.git
 cd sbom-analyzer
-pip install -r requirements.txt
+pip install -r requirements.txt # If your pip and python are out of sync run: python3 -m pip install -r requirements.txt
 ```
-
-If your pip and python are out of sync you may need to run: `python3 -m pip install -r requirements.txt`
 
 To use:
 - before each use, be sure to run `git pull` in your local advisory-database repo/directory.
@@ -40,3 +38,9 @@ python3 sbom-analyzer.py \
 	--input teleport_gravitational.json \
 	--output teleport_gravitational_results.csv \
 ```
+
+## TODO
+
+[ ] Specify the "environment" of the package in the analysis output, such as pypi, npm, etc.
+[ ] Read and parse a directory of SBOM files, outputing an analysis result per SBOM
+[ ] Support JSON output
