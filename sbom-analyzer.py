@@ -36,12 +36,13 @@ def build_advisory_index(base_path):
 	return advisory_index
 
 @click.command()
-@click.option('--input', required=True, help='SPDX file to analyze')
-@click.option('--output', help='output CSV filename')
-@click.option('--index', required=True, help='full path to the github issue advisory repo')
-@click.option('--verbose', '-v', is_flag=True, help='verbose output')
-def analyze_sbom(input, output, index, verbose):
-	f = open(input, 'r')
+@click.option('--index', '-idx', required=True, help='full path to advisory db repo')
+@click.option('--in-file', '-in', required=True, help='SPDX file to analyze')
+@click.option('--out-file', '-out', help='output filename')
+@click.option('--format', '-f', default='csv', type=click.Choice(['csv', 'json']), multiple=False, help='csv or json format')
+@click.option('--verbose', '-v', is_flag=True, help='verbosity')
+def analyze_sbom(in_file, out_file, index, format, verbose):
+	f = open(in_file, 'r')
 	blob = json.load(f)
 
 	print('[*] detected {} packages'.format(len(blob['packages'][1:])))
@@ -126,25 +127,31 @@ def analyze_sbom(input, output, index, verbose):
 	columns = ['ecosystem', 'package_name','package_version','vulnerability_id','vulnerability_link','vulnerability_severity','vulnerability_summary','vulnerability_details']
 	ghsa_base_url = 'https://github.com/advisories?query={}'
 
-	df = pd.DataFrame(columns=columns)
+	if format == 'csv':
+		df = pd.DataFrame(columns=columns)
+		for package in vulnerable_packages_details:
+			for vuln in package['vulnerabilities'].keys():
+				vuln_id = package['vulnerabilities'][vuln]['id']
+				temp = package['vulnerabilities'][vuln]['database_specific']['severity']
+				vuln_severity = temp if temp != 'MODERATE' else 'MEDIUM'
+				df.loc[len(df.index)] = [package['ecosystem'],
+										 package['package_name'], 
+										 package['package_version'],
+										 vuln_id,
+										 ghsa_base_url.format(vuln_id),
+										 vuln_severity,
+										 package['vulnerabilities'][vuln]['summary'],
+										 package['vulnerabilities'][vuln]['details'], ]
 
-	for package in vulnerable_packages_details:
-		for vuln in package['vulnerabilities'].keys():
-			vuln_id = package['vulnerabilities'][vuln]['id']
-			temp = package['vulnerabilities'][vuln]['database_specific']['severity']
-			vuln_severity = temp if temp != 'MODERATE' else 'MEDIUM'
-			df.loc[len(df.index)] = [package['ecosystem'],
-									 package['package_name'], 
-									 package['package_version'],
-									 vuln_id,
-									 ghsa_base_url.format(vuln_id),
-									 vuln_severity,
-									 package['vulnerabilities'][vuln]['summary'],
-									 package['vulnerabilities'][vuln]['details'], ]
-
-	if verbose: print('[*] writing CSV output file...')
-	output = output if output else 'sbom-analysis-results.csv'
-	df.to_csv(output)
+		if verbose: print('[*] writing CSV output file...')
+		out_file = out_file if out_file else 'sbom-analysis-results.csv'
+		df.to_csv(out_file)
+	else:
+		if verbose: print('[*] writing JSON output file...')
+		out_file = out_file if out_file else 'sbom-analysis-results.json'
+		f = open(out_file, 'w')
+		f.write(json.dumps(vulnerable_packages_details, indent=2))
+		f.close()
 	print('[*] analysis complete')
 
 if __name__ == '__main__':
